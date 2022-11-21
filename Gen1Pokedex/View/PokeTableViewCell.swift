@@ -25,7 +25,7 @@ class PokeTableViewCell: UITableViewCell {
         let pokeName = UILabel(frame: .zero)
         pokeName.translatesAutoresizingMaskIntoConstraints = false
         pokeName.backgroundColor = .systemYellow
-        
+        pokeName.textAlignment = .center
         pokeName.numberOfLines = 2
         pokeName.textColor = .systemRed
         
@@ -37,6 +37,7 @@ class PokeTableViewCell: UITableViewCell {
         let label = UILabel(frame: .zero)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 2
+        label.textAlignment = .center
         label.backgroundColor = .systemMint
 
         
@@ -79,7 +80,7 @@ class PokeTableViewCell: UITableViewCell {
         
         self.sprite.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 8).isActive = true
         self.sprite.leadingAnchor.constraint(equalTo: self.contentView.leadingAnchor, constant: 8).isActive = true
-        self.sprite.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor, constant: 8).isActive = true
+        self.sprite.centerYAnchor.constraint(equalTo: self.contentView.centerYAnchor).isActive = true
         
         vstack.topAnchor.constraint(equalTo: self.contentView.topAnchor, constant: 8).isActive = true
         vstack.trailingAnchor.constraint(equalTo: self.contentView.trailingAnchor, constant: -8).isActive = true
@@ -88,6 +89,7 @@ class PokeTableViewCell: UITableViewCell {
         vstack.leadingAnchor.constraint(equalTo: self.sprite.trailingAnchor, constant: 8).isActive = true
 
         topBuffer.heightAnchor.constraint(equalTo: bottomBuffer.heightAnchor).isActive = true
+//        vstack.heightAnchor.constraint(equalTo: self.sprite.heightAnchor).isActive = true
     }
     
 }
@@ -98,6 +100,7 @@ extension PokeTableViewCell {
             self.pokeElement.text = self.pokeTypesToString(type: poke.types)
             self.pokemonName.text = poke.name
             self.pokemonID = poke.id
+            
         }
 
     }
@@ -105,7 +108,7 @@ extension PokeTableViewCell {
     func pokeTypesToString(type: [Types]) -> String {
         var typesToString: String = ""
         type.forEach{elem in
-            typesToString += "   \(elem.type.name)"
+            typesToString += "\(elem.type.name)  "
             
         }
         

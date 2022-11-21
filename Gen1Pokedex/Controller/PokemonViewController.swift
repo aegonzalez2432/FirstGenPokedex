@@ -22,6 +22,8 @@ class PokemonViewController: UIViewController {
     var results: [NameLink] = []
     var offset: Int = 0
     var limit: Int = 20
+    var mkDict: [Int : ConstructPokemon] = [:]
+
     
     init(network: NetworkURLSessionManager = NetworkURLSessionManager()) {
         self.network = network
@@ -42,7 +44,7 @@ class PokemonViewController: UIViewController {
     }
     
     func createUI(){
-        self.view.backgroundColor = .black
+        self.view.backgroundColor = .white
         self.view.addSubview(self.pokeTableView)
         
         self.pokeTableView.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor, constant: 8).isActive = true
@@ -94,44 +96,64 @@ extension PokemonViewController: UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "PokemonCell", for: indexPath) as? PokeTableViewCell else {return UITableViewCell()
-            }
+        }
         //turn results to get the image for the sprite, also the type
         var pokemansId: Int = 0
+        //pokeDetails is link to details page for each poke
         let pokeDetails = self.results[indexPath.row].url
-        self.network.fetchPokemonResult(with: "\(pokeDetails)") { res in
-            switch res {
-            case .success(let page):
-                cell.configurePokemon(poke: page)
-                pokemansId = page.id
-                
-                if let dayta = ImageCache.shared.get(id: pokemansId){
-                    print("image received from cache")
-                    cell.configureImageIfNeeded(data: dayta, id: pokemansId)
-                } else {
-                    DispatchQueue.global().asyncAfter(deadline: .now()){
-                        let pokeSprite: String = page.sprites.frontDefault ?? ""
-                        self.network.fetchRawData(with: pokeSprite){spriteRes in
+        
+        //TODO: dictionary save key: id, val- next page
+        
+        
+        //fetch pokemon details page
+//        if let datarata = ImageCache.shared.get(id: indexPath.row + 1) {
+//            print("stfu")
+//            cell.configureImageIfNeeded(data: datarata, id: indexPath.row + 1)
+//
+//        } else {
+            
+            self.network.fetchPokemonResult(with: "\(pokeDetails)") { res in
+                switch res {
+                    //successful fetch
+                case .success(let page):
+                    print(pokeDetails)
+                    pokemansId = page.id
+                    self.mkDict[pokemansId] = page
+//                    guard let realPoke = self.mkDict[pokemansId] else {return}
+                    //                cell.configurePokemon(poke: realPoke)
+                    cell.configurePokemon(poke: page)
+//                    print("Real Poke: \(realPoke)\n\n")
+                    
+                    
+//                    if let dayta = ImageCache.shared.get(id: indexPath.row + 1){
+//                        print("image received from cache for \(page.name)")
+//                        print("pokemon id: \(page.id), pokemansId: \(pokemansId)")
+//                        cell.configureImageIfNeeded(data: dayta, id: indexPath.row + 1)
+//                    } else {
+                        guard let pokeSprite: String = page.sprites.frontDefault else {return }
+                        self.network.fetchRawData(with: pokeSprite) { spriteRes in
                             
                             switch spriteRes {
                             case .success(let data):
                                 print("got image!")
                                 
-                                ImageCache.shared.set(data: data, id: pokemansId)
-                                cell.configureImageIfNeeded(data: data, id: pokemansId)
+//                                ImageCache.shared.set(data: data, id: indexPath.row + 1)
+//                                print("Cached image. pokemon id: \(page.id), pokemansID: \(pokemansId), realPoke: \(page.id)")
+                                cell.configureImageIfNeeded(data: data, id: page.id)
                             case .failure(let err):
                                 self.presentNetworkErrorAlert(error: err)
                                 print("failed to get image")
                             }
-                        }
+//                        }
                     }
+                    
+                case .failure(let error):
+                    //self.presentNetworkErrorAlert(error: error)
+                    print("\n\n\ncould not access individual pokemon details for \(self.results[indexPath.row].name), \(error)")
                 }
-
-            case .failure(let error):
-                self.presentNetworkErrorAlert(error: error)
-                print("could not access individual pokemon details for \(self.results[indexPath.row].name)")
-            }
+//            }
+        
         }
-
         
         //CELLFORROWAT DO UPDATE FOR DETAIL OF POKEMON HERE
         return cell
@@ -145,6 +167,41 @@ extension PokemonViewController: UITableViewDataSource {
 extension PokemonViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let secondVC = PokemonDetailVC()
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "PokemonCell", for: indexPath) as? PokeTableViewCell else {return}
+        
+        guard let selectedPoke = mkDict[indexPath.row+1] else {return}
+         
+        guard let pokeReturnImage = selectedPoke.sprites.frontDefault else {return}
+        var pokeImage: UIImage?
+        self.network.fetchRawData(with: pokeReturnImage) { spriteRes in
+            
+            switch spriteRes {
+            case .success(let data):
+                print("got image!")
+                
+//                                ImageCache.shared.set(data: data, id: indexPath.row + 1)
+//                                print("Cached image. pokemon id: \(page.id), pokemansID: \(pokemansId), realPoke: \(page.id)")
+                pokeImage = UIImage(data: data)
+            case .failure(let err):
+                self.presentNetworkErrorAlert(error: err)
+                print("failed to get image")
+            }
+        }
+        //Stuff for detail page
+        DispatchQueue.main.asyncAfter(deadline: .now()) {
+
+            secondVC.pokeType.text = cell.pokeTypesToString(type: selectedPoke.types)
+            secondVC.pokeNameLabel.text = selectedPoke.name
+            secondVC.pokeImage.image = pokeImage
+            secondVC.pokeMoves.text = selectedPoke.moves.compactMap({ elem in
+                
+                elem.move.name
+                
+            }).joined(separator: ", ")
+            secondVC.pokeAbility.text = selectedPoke.abilities.compactMap({ bility in
+                bility.ability.name
+            }).joined(separator: ", ")
+        }
         self.navigationController?.pushViewController(secondVC, animated: true)
     }
 }

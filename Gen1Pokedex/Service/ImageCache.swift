@@ -26,7 +26,7 @@ extension ImageCache {
     func get(id: Int) -> Data? {
         let key = NSNumber(value: id)
         guard let object = self.cache.object(forKey: key) else { return nil }
-        
+        print("getting Caching id: \(id)")
         return Data(referencing: object)
     }
 }
